@@ -30,7 +30,6 @@ i386_init(void)
 
 	// user environment initialization functions
 	env_init();
-
 #ifdef CONFIG_KSPACE
 	// Touch all you want.
 	ENV_CREATE_KERNEL_TYPE(prog_test1);
