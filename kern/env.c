@@ -227,38 +227,7 @@ bind_functions(struct Env *e, struct Elf *elf)
 {
 	//find_function from kdebug.c should be used
 	//LAB 3: Your code here.
-	struct Secthdr *sh, *s_sh, *e_sh, *symtab_hdr = NULL;
-	struct Elf32_Sym *symtab, *symtab_end;
-	uintptr_t func_ptr;
-	char *strtab = NULL, *name;
-	// The section header table is located at offset e_shoff from the 
-	// beginning of the ELF,
-	// and e_shnum holds the number of entries in the section header table.
-	// The tables we are looking for are called '.symtab' and '.strtab'.
-	// sh[elf->e_shstrndx].sh_offset holds the offset of the area
-	// where the section names are located in the ELF, and each
-	// name is located at sh[elf->e_shstrndx].sh_offset + sh_name.
-	s_sh = (struct Secthdr *) ((uint8_t *) elf + elf->e_shoff);
-	e_sh = s_sh + elf->e_shnum;
-	for (sh = s_sh; sh < e_sh; sh++) {
-		name = (char *) ((uint8_t *) elf + s_sh[elf->e_shstrndx].sh_offset + sh->sh_name);
-		if (sh->sh_type == ELF_SHT_SYMTAB && !strcmp(name, ".symtab"))
-			symtab_hdr = sh;
-		if (sh->sh_type == ELF_SHT_STRTAB && !strcmp(name, ".strtab"))
-			strtab = (char *) elf + sh->sh_offset;
-	}
 
-	symtab = (struct Elf32_Sym *) ((uint8_t *) elf + symtab_hdr->sh_offset);
-	symtab_end = (struct Elf32_Sym *) ((uint8_t *) symtab + symtab_hdr->sh_size);
-	// Assign each function's address to the corresponding
-	// global variable. STB_GLOBAL == 1
-	for (; symtab < symtab_end; symtab++) {
-		if (ELF32_ST_BIND(symtab->st_info) == 1)
-		// st_name holds the index into the symbol string table.
-			if ((func_ptr = (uintptr_t) find_function(strtab + symtab->st_name)))
-			// st_value holds the variable's address.
-				*((uintptr_t *) symtab->st_value) = func_ptr;
-}
 	/*
 	*((int *) 0x00231008) = (int) &cprintf;
 	*((int *) 0x00221004) = (int) &sys_yield;
@@ -268,6 +237,30 @@ bind_functions(struct Env *e, struct Elf *elf)
 	*((int *) 0x00231010) = (int) &sys_exit;
 	*((int *) 0x0024100c) = (int) &sys_exit;
 	*/
+	struct Secthdr *sh_start = (struct Secthdr *) ((uint8_t *) elf + elf->e_shoff);
+	struct Secthdr *sh_end = sh_start + elf->e_shnum;
+	struct Secthdr *sh;
+	//таблица названий секций
+	// индекс таблицы заголовка сектора(номер сектора)
+	char *sh_strtab = (char *) elf + sh_start[elf->e_shstrndx].sh_offset;
+	char *strtab = NULL;
+	struct Elf32_Sym *sym_start = NULL, *sym_end = NULL, *sym;
+	uintptr_t addr;
+
+	for (sh = sh_start; sh < sh_end; sh++) {
+		if (!strcmp(&sh_strtab[sh->sh_name], ".strtab"))
+			strtab = (char *) elf + sh->sh_offset;
+		else
+		if (!strcmp(&sh_strtab[sh->sh_name], ".symtab")) {
+			sym_start = (struct Elf32_Sym *) ((uint8_t *) elf + sh->sh_offset);
+			sym_end = (struct Elf32_Sym *) ((uint8_t *) elf + sh->sh_offset + sh->sh_size);
+		}
+	}
+
+	for (sym = sym_start; sym < sym_end; sym++) {
+		if ((ELF32_ST_BIND(sym->st_info) == 1) && (addr = find_function(&strtab[sym->st_name])))
+			*((uint32_t *) (sym->st_value)) = (uint32_t) addr;
+	}
 }
 #endif
 
