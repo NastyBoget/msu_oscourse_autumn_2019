@@ -237,27 +237,31 @@ bind_functions(struct Env *e, struct Elf *elf)
 	*((int *) 0x00231010) = (int) &sys_exit;
 	*((int *) 0x0024100c) = (int) &sys_exit;
 	*/
+	//e_shoff - смещение отн elf файла -> начало таблицы секций
 	struct Secthdr *sh_start = (struct Secthdr *) ((uint8_t *) elf + elf->e_shoff);
+	//e_shnum - количество секций в таблицы -> конец таблицы
 	struct Secthdr *sh_end = sh_start + elf->e_shnum;
 	struct Secthdr *sh;
 	//таблица названий секций
-	// индекс таблицы заголовка сектора(номер сектора)
-	char *sh_strtab = (char *) elf + sh_start[elf->e_shstrndx].sh_offset;
+	//elf->e_shstrndx - индекс начала таблицы названий заголовков сектора(номер сектора)
+	char *sh_strtab = (char *) elf + sh_start[elf->e_shstrndx].sh_offset; //названия заголовков
 	char *strtab = NULL;
 	struct Elf32_Sym *sym_start = NULL, *sym_end = NULL, *sym;
 	uintptr_t addr;
 
 	for (sh = sh_start; sh < sh_end; sh++) {
-		if (!strcmp(&sh_strtab[sh->sh_name], ".strtab"))
-			strtab = (char *) elf + sh->sh_offset;
+		if (!strcmp(&sh_strtab[sh->sh_name], ".strtab")) //смотрим названия заголовков
+			strtab = (char *) elf + sh->sh_offset; //запоминаем адрес
 		else
 		if (!strcmp(&sh_strtab[sh->sh_name], ".symtab")) {
+			// запоминаем указатели на символы
 			sym_start = (struct Elf32_Sym *) ((uint8_t *) elf + sh->sh_offset);
 			sym_end = (struct Elf32_Sym *) ((uint8_t *) elf + sh->sh_offset + sh->sh_size);
 		}
 	}
 
 	for (sym = sym_start; sym < sym_end; sym++) {
+		//ELF32_ST_BIND - проверяет является ли символ глобальной функцией
 		if ((ELF32_ST_BIND(sym->st_info) == 1) && (addr = find_function(&strtab[sym->st_name])))
 			*((uint32_t *) (sym->st_value)) = (uint32_t) addr;
 	}
