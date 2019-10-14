@@ -136,6 +136,8 @@ trap_dispatch(struct Trapframe *tf)
 	}
 
 	if (tf->tf_trapno == IRQ_OFFSET + IRQ_CLOCK) {
+		rtc_check_status(); //прочесть регистр статуса RTC
+		pic_send_eoi(IRQ_CLOCK);//отправить сигнал EOI на контроллер прерываний
 		sched_yield();
 		return;
 	}

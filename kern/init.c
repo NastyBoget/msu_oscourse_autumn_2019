@@ -47,8 +47,6 @@ i386_init(void)
 	ENV_CREATE_KERNEL_TYPE(prog_test3);
 	ENV_CREATE_KERNEL_TYPE(prog_test4);
 #endif
-	//прочесть регистр статуса RTC
-	pic_send_eoi(rtc_check_status());//отправить сигнал EOI на контроллер прерываний
 	// Schedule and run the first user environment!
 	sched_yield();
 }
