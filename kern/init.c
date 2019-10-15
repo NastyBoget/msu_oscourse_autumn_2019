@@ -43,6 +43,8 @@ i386_init(void)
 	rtc_init(); //инициализация часов RTC
 	//размаскирование на контроллере линии IRQ_CLOCK, по которой приходят прерывания от часов
 	irq_setmask_8259A(irq_mask_8259A & ~(1 << IRQ_CLOCK)); // inc/trap.h
+	
+	monitor(NULL);
 #ifdef CONFIG_KSPACE
 	// Touch all you want.
 	ENV_CREATE_KERNEL_TYPE(prog_test1);
