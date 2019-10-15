@@ -33,13 +33,13 @@ i386_init(void)
 	// user environment initialization functions
 	env_init();
 
-	clock_idt_init();
+	clock_idt_init(); 
 
-	pic_init();
+	pic_init(); //инициализация программируемого контроллера прерываний
 	
-	rtc_init();
-	//размаскировать на контроллере линию IRQ_CLOCK, по которой приходят прерывания от часов
-	irq_setmask_8259A(irq_mask_8259A & ~(1 << IRQ_CLOCK));
+	rtc_init(); //инициализация часов RTC
+	//размаскирование на контроллере линии IRQ_CLOCK, по которой приходят прерывания от часов
+	irq_setmask_8259A(irq_mask_8259A & ~(1 << IRQ_CLOCK)); // inc/trap.h
 #ifdef CONFIG_KSPACE
 	// Touch all you want.
 	ENV_CREATE_KERNEL_TYPE(prog_test1);

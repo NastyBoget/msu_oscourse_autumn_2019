@@ -11,12 +11,12 @@ rtc_init(void)
 	uint8_t A, B;
 	outb(IO_RTC_CMND, RTC_BREG); //Переключение на регистр часов B.
 	B = inb(IO_RTC_DATA); //Чтение значения регистра B из порта ввода-вывода.
-	B |= RTC_PIE; // Установка бита RTC_PIE.
+	B |= RTC_PIE; // Установка бита RTC_PIE - periodic interrupt enable.
 	outb(IO_RTC_DATA, B); //Запись обновленного значения регистра в порт ввода-вывода.
-	outb(IO_RTC_CMND, RTC_AREG);
-	A = inb(IO_RTC_DATA);
-	A |= 0xF;
-	outb(IO_RTC_DATA, A);
+	outb(IO_RTC_CMND, RTC_AREG); //Переключение на регистр часов A.
+	A = inb(IO_RTC_DATA); //Чтение значения регистра A из порта ввода-вывода.
+	A |= 0xF; // doc/rtc.pdf table 4 (page 14) -> RS3-RS0 = 1 FREQUENCY = 2Hz
+	outb(IO_RTC_DATA, A); //Запись обновленного значения регистра в порт ввода-вывода.
 	nmi_enable();
 }
 
