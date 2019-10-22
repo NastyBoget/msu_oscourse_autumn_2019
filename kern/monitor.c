@@ -26,10 +26,27 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+    { "backtrace", "Display backtrace information", mon_backtrace },
+    { "timer_start", "Display timer start information", mon_timer_start },
+    { "timer_stop", "Display timer stop information", mon_timer_stop },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
 /***** Implementations of basic kernel monitor commands *****/
+
+int 
+mon_timer_start(int argc, char **argv, struct Trapframe *tf) 
+{
+	timer_start();
+	return 0;
+}
+
+int 
+mon_timer_stop(int argc, char **argv, struct Trapframe *tf) 
+{
+	timer_stop();
+	return 0;
+}
 
 int
 mon_help(int argc, char **argv, struct Trapframe *tf)
@@ -65,6 +82,19 @@ int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	// Your code here.
+    struct Eipdebuginfo info;
+	uint32_t ebp = read_ebp();
+	cprintf("Stack backtrace:\n");
+	while (ebp) {
+        uint32_t *cur = (uint32_t *)ebp;
+        uint32_t eip = cur[1];
+		cprintf("  ebp %08x  eip %08x  args %08x %08x %08x %08x %08x\n", \
+                ebp, eip, cur[2], cur[3], cur[4], cur[5], cur[6]);
+        cprintf("%d\n", debuginfo_eip(eip, &info));
+        cprintf("         %s:%d: %.*s+%u\n", info.eip_file, info.eip_line, \
+                info.eip_fn_namelen, info.eip_fn_name, eip - info.eip_fn_addr);
+        ebp = *cur;
+	}
 	return 0;
 }
 
