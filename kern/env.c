@@ -6,7 +6,7 @@
 #include <inc/string.h>
 #include <inc/assert.h>
 #include <inc/elf.h>
-
+#include <kern/kdebug.h>
 #include <kern/env.h>
 #include <kern/trap.h>
 #include <kern/monitor.h>
@@ -121,7 +121,13 @@ env_init(void)
 {
 	// Set up envs array
 	//LAB 3: Your code here.
-	
+	size_t i;
+	for (i = 0; i < NENV; ++i) {
+		memset(&envs[i], 0, sizeof(*envs));
+		if (i < NENV - 1)
+			envs[i].env_link = &envs[i + 1];
+	}
+    env_free_list = &envs[0];
 	// Per-CPU part of the initialization
 	env_init_percpu();
 }
@@ -200,7 +206,8 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	e->env_tf.tf_ss = GD_KD | 0;
 	e->env_tf.tf_cs = GD_KT | 0;
 	//LAB 3: Your code here.
-	// e->env_tf.tf_esp = 0x210000;
+	//должно хватать двух страничных кадров.
+	e->env_tf.tf_esp = 0x210000 + 2 * PGSIZE * (e - envs); 
 #else
 #endif
 
@@ -232,6 +239,34 @@ bind_functions(struct Env *e, struct Elf *elf)
 	*((int *) 0x00231010) = (int) &sys_exit;
 	*((int *) 0x0024100c) = (int) &sys_exit;
 	*/
+	//e_shoff - смещение отн elf файла -> начало таблицы секций
+	struct Secthdr *sh_start = (struct Secthdr *) ((uint8_t *) elf + elf->e_shoff);
+	//e_shnum - количество секций в таблицы -> конец таблицы
+	struct Secthdr *sh_end = sh_start + elf->e_shnum;
+	struct Secthdr *sh;
+	//таблица названий секций
+	//elf->e_shstrndx - индекс начала таблицы названий заголовков сектора(номер сектора)
+	char *sh_strtab = (char *) elf + sh_start[elf->e_shstrndx].sh_offset; //названия заголовков
+	char *strtab = NULL;
+	struct Elf32_Sym *sym_start = NULL, *sym_end = NULL, *sym;
+	uintptr_t addr;
+
+	for (sh = sh_start; sh < sh_end; sh++) {
+		if (!strcmp(&sh_strtab[sh->sh_name], ".strtab")) //смотрим названия заголовков
+			strtab = (char *) elf + sh->sh_offset; //запоминаем адрес
+		else
+		if (!strcmp(&sh_strtab[sh->sh_name], ".symtab")) {
+			// запоминаем указатели на символы
+			sym_start = (struct Elf32_Sym *) ((uint8_t *) elf + sh->sh_offset);
+			sym_end = (struct Elf32_Sym *) ((uint8_t *) elf + sh->sh_offset + sh->sh_size);
+		}
+	}
+
+	for (sym = sym_start; sym < sym_end; sym++) {
+		//ELF32_ST_BIND - проверяет является ли символ глобальной функцией
+		if ((ELF32_ST_BIND(sym->st_info) == 1) && (addr = find_function(&strtab[sym->st_name])))
+			*((uint32_t *) (sym->st_value)) = (uint32_t) addr;
+	}
 }
 #endif
 
@@ -269,7 +304,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	//  ph->p_va.  Any remaining memory bytes should be cleared to zero.
 	//  (The ELF header should have ph->p_filesz <= ph->p_memsz.)
 	//
-	//  ELF segments are not necessarily page-aligned, but you can
+	//  ELF segments are not necessarily page-aligned (выровнены), but you can
 	//  assume for this function that no two segments will touch
 	//  the same page.
 	//
@@ -278,10 +313,28 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	//  What?  (See env_run() and env_pop_tf() below.)
 
 	//LAB 3: Your code here.
+	struct Elf *elf_hdr;
+	struct Proghdr *ph, *eph;
+
+	elf_hdr = (struct Elf *) binary;
+	// is this a valid ELF? inc/<elf.h>, <boot/main.c>
+	if (elf_hdr->e_magic != ELF_MAGIC) {
+		panic("It isn't an ELF file!");
+	}
+	//as in <boot/main.c>
+	ph = (struct Proghdr *) ((uint8_t *) elf_hdr + elf_hdr->e_phoff);
+	eph = ph + elf_hdr->e_phnum;
 	
+	for (; ph < eph; ph++) { //in hints
+		if (ph->p_type == ELF_PROG_LOAD) {
+			memcpy((uint8_t *) ph->p_va, binary + ph->p_offset, ph->p_filesz);//hints
+			memset((uint8_t *) ph->p_va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
+		}
+	}
+    e->env_tf.tf_eip = elf_hdr->e_entry;//the program's entry point
 #ifdef CONFIG_KSPACE
 	// Uncomment this for task №5.
-	//bind_functions();
+	bind_functions(e, elf_hdr);
 #endif
 }
 
@@ -296,6 +349,15 @@ void
 env_create(uint8_t *binary, size_t size, enum EnvType type)
 {
 	//LAB 3: Your code here.
+    struct Env *env;
+	int error;
+	
+	if ((error = env_alloc(&env, 0)) < 0) {//parent ID is set to 0.
+		panic("env_alloc: %i", error);
+	}
+	load_icode(env, binary, size);
+	curenv = NULL;
+    env->env_type = type;
 }
 
 //
@@ -323,10 +385,13 @@ env_destroy(struct Env *e)
 {
 	//LAB 3: Your code here.
 	env_free(e);
-
-	cprintf("Destroyed the only environment - nothing more to do!\n");
-	while (1)
-		monitor(NULL);
+	if (e == curenv) {
+		curenv = NULL;
+		sched_yield();
+	}
+	//cprintf("Destroyed the only environment - nothing more to do!\n");
+	//while (1)
+	//monitor(NULL);
 }
 
 #ifdef CONFIG_KSPACE
@@ -423,8 +488,14 @@ env_run(struct Env *e)
 	//	e->env_tf to sensible values.
 	//
 	//LAB 3: Your code here.
+    if (curenv != e) {//Step 1: If this is a context switch 
+		if (curenv && curenv->env_status == ENV_RUNNING)
+			curenv->env_status = ENV_RUNNABLE; // 1
+		curenv = e; // 2 Set 'curenv' to the new environment
+		curenv->env_status = ENV_RUNNING; // 3
+		curenv->env_runs++; // 4
+	}
 
-
-	env_pop_tf(&e->env_tf);
+	env_pop_tf(&e->env_tf); //Step 2. eip set in load_icode 
 }
 
