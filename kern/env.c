@@ -124,7 +124,6 @@ env_init(void)
 	size_t i;
 	for (i = 0; i < NENV; ++i) {
 		memset(&envs[i], 0, sizeof(*envs));
-		envs[i].env_type = ENV_TYPE_KERNEL;
 		if (i < NENV - 1)
 			envs[i].env_link = &envs[i + 1];
 	}
