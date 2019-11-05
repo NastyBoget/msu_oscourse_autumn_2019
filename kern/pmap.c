@@ -56,12 +56,15 @@ i386_detect_memory(void)
 		npages = (EXTPHYSMEM / PGSIZE) + npages_extmem;
 	else
 		npages = npages_basemem;
-
 	cprintf("Physical memory: %uK available, base = %uK, extended = %uK, pextended = %uK\n",
 		npages * PGSIZE / 1024,
 		npages_basemem * PGSIZE / 1024,
 		npages_extmem * PGSIZE / 1024,
 		npages_pextmem * PGSIZE / 1024);
+	if (npages > 512 * 1024 / PGSIZE) {
+		cprintf("Too much memory \n");
+		npages =  512 * 1024 / PGSIZE;
+	}
 }
 
 
