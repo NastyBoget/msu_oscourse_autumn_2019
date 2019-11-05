@@ -54,11 +54,15 @@ i386_init(void)
 	env_init();
 	trap_init();
 
-	clock_idt_init();
+	clock_idt_init(); 
 
-	pic_init();
-	rtc_init();
-
+	pic_init(); //инициализация программируемого контроллера прерываний
+	
+	rtc_init(); //инициализация часов RTC
+	//размаскирование на контроллере линии IRQ_CLOCK, по которой приходят прерывания от часов
+	irq_setmask_8259A(irq_mask_8259A & ~(1 << IRQ_CLOCK)); // inc/trap.h
+	
+	monitor(NULL);
 #ifdef CONFIG_KSPACE
 	// Touch all you want.
 	ENV_CREATE_KERNEL_TYPE(prog_test1);
@@ -76,7 +80,6 @@ i386_init(void)
 	ENV_CREATE(user_hello, ENV_TYPE_USER);
 #endif // TEST*
 #endif
-
 	// Schedule and run the first user environment!
 	sched_yield();
 }
