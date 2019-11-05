@@ -61,9 +61,9 @@ i386_detect_memory(void)
 		npages_basemem * PGSIZE / 1024,
 		npages_extmem * PGSIZE / 1024,
 		npages_pextmem * PGSIZE / 1024);
-	if (npages > 512 * 1024 / PGSIZE) {
+	if (npages > 512 * 1024 * 1024 / PGSIZE) {
 		cprintf("Too much memory \n");
-		npages =  512 * 1024 / PGSIZE;
+		npages = 512 * 1024 * 1024 / PGSIZE;
 	}
 }
 
