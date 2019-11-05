@@ -507,7 +507,16 @@ check_page_alloc(void)
 	struct PageInfo *fl;
 	char *c;
 	int i;
-
+/*	pp0 = NULL;
+	pp1 = NULL;
+	while((pp = page_alloc(0))) {
+		pp1 = pp0;
+		pp0 = pp;
+	}
+	page_free(pp0);
+	page_free(pp1);
+	assert(false);
+	*/
 	if (!pages)
 		panic("'pages' is a null pointer!");
 
