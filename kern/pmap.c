@@ -47,7 +47,10 @@ i386_detect_memory(void)
 	npages_basemem = (nvram_read(NVRAM_BASELO) * 1024) / PGSIZE;
 	npages_extmem = (nvram_read(NVRAM_EXTLO) * 1024) / PGSIZE;
 	npages_pextmem = (nvram_read(NVRAM_PEXTLO) * 1024 * 64) / PGSIZE;
-
+	if (npages_pextmem * PGSIZE > 417792 * 1024) {
+		cprintf("Too much memory \n");
+		npages_pextmem = 417792 * 1024 / PGSIZE;
+	}
 	// Calculate the number of physical pages available in both base
 	// and extended memory.
 	if (npages_pextmem && npages_extmem > 0x1000)
@@ -56,15 +59,13 @@ i386_detect_memory(void)
 		npages = (EXTPHYSMEM / PGSIZE) + npages_extmem;
 	else
 		npages = npages_basemem;
+		
 	cprintf("Physical memory: %uK available, base = %uK, extended = %uK, pextended = %uK\n",
 		npages * PGSIZE / 1024,
 		npages_basemem * PGSIZE / 1024,
 		npages_extmem * PGSIZE / 1024,
 		npages_pextmem * PGSIZE / 1024);
-	if (npages > 512 * 1024 * 1024 / PGSIZE) {
-		cprintf("Too much memory \n");
-		npages = 512 * 1024 * 1024 / PGSIZE;
-	}
+
 }
 
 
