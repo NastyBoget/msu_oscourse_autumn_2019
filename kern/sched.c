@@ -28,13 +28,16 @@ sched_yield(void)
 	//LAB 3: Your code here.
 	size_t i, cnt;
 
-	i = curenv ? (curenv - envs + 1) % NENV : 0;
-	for (cnt = 0; cnt++ < NENV; i = (i + 1) % NENV) {
-		if (envs[i].env_status == ENV_RUNNABLE ||
-			(cnt == NENV && envs[i].env_status == ENV_RUNNING))
-			env_run(&envs[i]);
+	if (curenv == NULL) {
+		env_run(&envs[0]);
+	} else {
+		i = (curenv - envs + 1) % NENV; 
+		for (cnt = 0; cnt++ < NENV; i = (i + 1) % NENV) {
+			if (envs[i].env_status == ENV_RUNNABLE ||
+				(cnt == NENV && envs[i].env_status == ENV_RUNNING))
+				env_run(&envs[i]);
+		}
 	}
-	
 	// sched_halt never returns
 	sched_halt();
 }
