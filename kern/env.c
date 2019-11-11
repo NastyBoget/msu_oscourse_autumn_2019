@@ -416,7 +416,8 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	//LAB 3: Your code here.
 	struct Elf *elf_hdr;
 	struct Proghdr *ph, *eph;
-
+	
+	lcr3(PADDR(e->env_pgdir));
 	elf_hdr = (struct Elf *) binary;
 	// is this a valid ELF? inc/<elf.h>, <boot/main.c>
 	if (elf_hdr->e_magic != ELF_MAGIC) {
@@ -428,6 +429,7 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 	
 	for (; ph < eph; ph++) { //in hints
 		if (ph->p_type == ELF_PROG_LOAD) {
+			region_alloc(e, (void *) ph->p_va, ph->p_memsz);
 			memcpy((uint8_t *) ph->p_va, binary + ph->p_offset, ph->p_filesz);//hints
 			memset((uint8_t *) ph->p_va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
 		}

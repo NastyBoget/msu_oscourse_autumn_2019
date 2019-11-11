@@ -191,8 +191,7 @@ print_regs(struct PushRegs *regs)
 static void
 trap_dispatch(struct Trapframe *tf)
 {
-	// Handle processor exceptions.
-
+	
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
 	// IRQ line or other reasons. We don't care.
@@ -214,7 +213,7 @@ trap_dispatch(struct Trapframe *tf)
 		page_fault_handler(tf);
 		return;
 	}
-    
+    // Handle processor exceptions.
     if (tf->tf_trapno == T_SYSCALL) {
 		tf->tf_regs.reg_eax = syscall(
 		        tf->tf_regs.reg_eax, tf->tf_regs.reg_edx,tf->tf_regs.reg_ecx, 
@@ -300,7 +299,9 @@ page_fault_handler(struct Trapframe *tf)
 	// Handle kernel-mode page faults.
 
 	// LAB 8: Your code here.
-
+	if (!(tf->tf_cs & 3)) {
+		panic("page fault in kernel!");
+	}
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
 

@@ -60,10 +60,9 @@ _alltraps:
 	pushl %ds
 	pushl %es
 	pushal
-	pushl $GD_KD
-	pushl $GD_KD
-	popl %ds
-	popl %es
+	movl $GD_KD, %eax
+	movw %ax, %ds
+	movw %ax, %es
 	pushl %esp
 	call trap
     jmp .
