@@ -52,7 +52,10 @@
 
 
 .text
-
+/* Записать значения в стек таким образом, чтобы стек был похож на структуру Trapframe
+ * Записать GD_KD в %ds и %es
+ * С помощью pushl %esp передать указатель на Trapframe в качестве аргумента функции trap()
+ */
 .globl _alltraps
 .type _alltraps, @function;
 .align 2

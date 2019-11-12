@@ -90,7 +90,7 @@ trap_init(void)
 	extern void (*pgflt_thdlr)(void);
 	extern void (*fperr_thdlr)(void);
 	extern void (*syscall_thdlr)(void);
-
+	//инициализация IDT
 	SETGATE(idt[T_DIVIDE], 0, GD_KT, (int) &divide_thdlr, 0);
 	SETGATE(idt[T_DEBUG], 0, GD_KT, (int) &debug_thdlr, 0);
 	SETGATE(idt[T_NMI], 0, GD_KT, (int) &nmi_thdlr, 0);
@@ -209,19 +209,23 @@ trap_dispatch(struct Trapframe *tf)
 		return;
 	}
 	
-	if (tf->tf_trapno == T_PGFLT) {
+	if (tf->tf_trapno == T_PGFLT) { // отправка исключения ошибки страницы
 		page_fault_handler(tf);
 		return;
 	}
     // Handle processor exceptions.
     if (tf->tf_trapno == T_SYSCALL) {
+		// Номер системного вызова находится в %eax, 
+		// а аргументы (количеством до пяти) находятся в 
+		// %edx, %ecx, %ebx, %edi и %esi соответственно. 
+		// Возвращаемое значение передается в %eax.
 		tf->tf_regs.reg_eax = syscall(
 		        tf->tf_regs.reg_eax, tf->tf_regs.reg_edx,tf->tf_regs.reg_ecx, 
 		        tf->tf_regs.reg_ebx, tf->tf_regs.reg_edi, tf->tf_regs.reg_esi);
 		return;
 	}
     
-    if (tf->tf_trapno == T_BRKPT) {
+    if (tf->tf_trapno == T_BRKPT) { // Исключение точки останова
 		monitor(tf);
 		return;
 	}
@@ -294,12 +298,13 @@ page_fault_handler(struct Trapframe *tf)
 	uint32_t fault_va;
 
 	// Read processor's CR2 register to find the faulting address
-	fault_va = rcr2();
+	fault_va = rcr2(); // Когда процессор принимает ошибку страницы, 
+	//он сохраняет линейный (т.е. виртуальный) адрес, который вызвал ошибку, в специальном регистре CR2
 
 	// Handle kernel-mode page faults.
 
 	// LAB 8: Your code here.
-	if (!(tf->tf_cs & 3)) {
+	if (!(tf->tf_cs & 3)) { //если ошибка страницы происходит в режиме ядра
 		panic("page fault in kernel!");
 	}
 	// We've already handled kernel-mode exceptions, so if we get here,
