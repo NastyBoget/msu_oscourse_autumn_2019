@@ -87,7 +87,7 @@ CFLAGS         += -fno-pic -pipe
 # mon_backtrace()'s function prologue on gcc version: (Debian 4.7.2-5) 4.7.2
 EXTRA_CFLAGS   += -Wno-unused-but-set-variable -gstabs -fno-tree-ch
 
-GCC_LIB        := $(shell $(CC) $(CFLAGS) -print-libgcc-file-name)
+GCC_LIB        := $(shell $(CC) $(CFLAGS) -m32 -print-libgcc-file-name)
 
 endif
 
@@ -119,7 +119,8 @@ GDBPORT	:= $(shell expr `id -u` % 5000 + 25000)
 # Compiler flags
 # -fno-builtin is required to avoid refs to undefined functions in the kernel.
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
-CFLAGS += $(DEFS) $(LABDEFS) -O1 -I$(TOP) -MD
+# -g
+CFLAGS += $(DEFS) $(LABDEFS)  -O1 -I$(TOP) -MD 
 CFLAGS += -m32 -fno-builtin -fno-omit-frame-pointer -fno-stack-protector
 CFLAGS += -Wall -Wformat=2 -Wno-unused-function -Werror
 CFLAGS += $(EXTRA_CFLAGS)
