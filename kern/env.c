@@ -666,7 +666,7 @@ env_run(struct Env *e)
 		curenv->env_status = ENV_RUNNING; // 3
 		curenv->env_runs++; // 4
 	}
-	cprintf("ID %u\n", (unsigned)curenv);
+	//cprintf("ID %u\n", (unsigned)curenv);
 	//LAB 8: Your code here.
 	lcr3(PADDR(e->env_pgdir));
 	env_pop_tf(&e->env_tf); //Step 2. eip set in load_icode 
