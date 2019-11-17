@@ -127,6 +127,4 @@ TRAPHANDLER_NOEC(mchk_thdlr, T_MCHK)
 TRAPHANDLER_NOEC(simderr_thdlr, T_SIMDERR)
 TRAPHANDLER_NOEC(syscall_thdlr, T_SYSCALL)
 
-clock_thdlr:
-    jmp .
 #endif

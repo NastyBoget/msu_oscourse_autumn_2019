@@ -549,7 +549,7 @@ env_destroy(struct Env *e)
 	//LAB 3: Your code here.
 	env_free(e);
 	if (e == curenv) {
-		//curenv = NULL;
+		curenv = NULL;
 		sched_yield();
 	}
 	//cprintf("Destroyed the only environment - nothing more to do!\n");
