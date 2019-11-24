@@ -25,7 +25,7 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 	// LAB 9: Your code here.
 	//panic("ipc_recv not implemented");
 	int err;
-
+	pg = (pg) ? pg : (void *) UTOP;
 	if ((err = sys_ipc_recv(pg)) < 0) {
 		if (from_env_store) {
 			*from_env_store = 0;
@@ -43,7 +43,7 @@ ipc_recv(envid_t *from_env_store, void *pg, int *perm_store)
 	}
 
 #ifdef SANITIZE_USER_SHADOW_BASE
-	// platform_asan_unpoison(pg, PGSIZE);
+	 platform_asan_unpoison(pg, PGSIZE);
 #endif
 	return thisenv->env_ipc_value;
 }
