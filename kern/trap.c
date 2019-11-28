@@ -2,7 +2,7 @@
 #include <inc/x86.h>
 #include <inc/assert.h>
 #include <inc/string.h>
-
+#include <inc/vsyscall.h>
 #include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/console.h>
@@ -19,7 +19,7 @@
 #endif
 
 static struct Taskstate ts;
-
+int *vsys;
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
  * additional information in the latter case.
@@ -209,6 +209,7 @@ trap_dispatch(struct Trapframe *tf)
 	if (tf->tf_trapno == IRQ_OFFSET + IRQ_CLOCK) {
 		rtc_check_status(); //прочесть регистр статуса RTC
 		pic_send_eoi(IRQ_CLOCK);//отправить сигнал EOI на контроллер прерываний
+		vsys[VSYS_gettime] = gettime();
 		sched_yield();//вызов планировщика
 		return;
 	}

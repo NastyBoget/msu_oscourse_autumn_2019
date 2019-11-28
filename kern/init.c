@@ -3,7 +3,7 @@
 #include <inc/stdio.h>
 #include <inc/string.h>
 #include <inc/assert.h>
-
+#include <inc/vsyscall.h>
 #include <kern/monitor.h>
 #include <kern/tsc.h>
 #include <kern/console.h>
@@ -14,6 +14,8 @@
 #include <kern/cpu.h>
 #include <kern/picirq.h>
 #include <kern/kclock.h>
+
+int *vsys;
 
 void
 i386_init(void)
@@ -49,19 +51,15 @@ i386_init(void)
 	// Lab 6 memory management initialization functions
 	mem_init();
 #endif
-
 	// user environment initialization functions
 	env_init();
 	trap_init();
-
 	clock_idt_init(); 
-
 	pic_init(); //инициализация программируемого контроллера прерываний
-	
 	rtc_init(); //инициализация часов RTC
+	vsys[VSYS_gettime] = gettime();
 	//размаскирование на контроллере линии IRQ_CLOCK, по которой приходят прерывания от часов
 	irq_setmask_8259A(irq_mask_8259A & ~(1 << IRQ_CLOCK)); // inc/trap.h
-	
 	//monitor(NULL);
 #ifdef CONFIG_KSPACE
 	// Touch all you want.
