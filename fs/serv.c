@@ -14,6 +14,7 @@
 
 #define debug 0
 
+#define BUFSIZE PGSIZE - sizeof(int) - sizeof(size_t)
 // The file system server maintains three structures
 // for each open file.
 //
@@ -219,7 +220,10 @@ serve_read(envid_t envid, union Fsipc *ipc)
 	if ((err = openfile_lookup(envid, req->req_fileid, &o_f)) < 0) {
 		return err;
 	}
-
+	if (req->req_n > BUFSIZE) {
+		req->req_n = BUFSIZE;
+	}
+	
 	// Read req_n bytes.
 	// On success, file_read() returns the nubmer of bytes read.
 	if ((err = file_read(o_f->o_file, ret->ret_buf, req->req_n,
